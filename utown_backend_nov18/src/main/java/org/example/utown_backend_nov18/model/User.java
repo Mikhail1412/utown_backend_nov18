@@ -32,6 +32,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String lastName;
 
+    @Column(nullable = false)
+    private Integer age;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id"),

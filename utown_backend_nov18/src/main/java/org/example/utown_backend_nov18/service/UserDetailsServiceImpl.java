@@ -1,6 +1,5 @@
 package org.example.utown_backend_nov18.service;
 
-import java.util.Set;
 import org.example.utown_backend_nov18.model.Role;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.repository.UserRepository;
@@ -10,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
