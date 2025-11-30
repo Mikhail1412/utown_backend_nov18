@@ -24,29 +24,23 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF игнорируем для REST-API
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/**")
                 )
 
-                // Включаем CORS (использует бин ниже)
                 .cors(Customizer.withDefaults())
 
-                // Правила доступа
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/admin/**", "/api/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
 
-                // Логин-форма: используем дефолтную Spring-страницу,
-                // но после успешного входа идём на /admin
                 .formLogin(form -> form
                         .defaultSuccessUrl("/admin", true)
                         .permitAll()
                 )
 
-                // Логаут как был
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
@@ -56,7 +50,6 @@ public class WebSecurityConfig {
         return http.build();
     }
 
-    // CORS-конфиг, чтобы формально закрыть пункт задания
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
