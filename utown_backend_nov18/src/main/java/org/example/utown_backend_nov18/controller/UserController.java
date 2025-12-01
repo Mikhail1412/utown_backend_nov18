@@ -1,5 +1,6 @@
 package org.example.utown_backend_nov18.controller;
 
+import jakarta.annotation.security.PermitAll;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.model.Role;
 import org.example.utown_backend_nov18.repository.RoleRepository;
@@ -11,7 +12,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
+@CrossOrigin(origins = "*")
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -27,16 +31,28 @@ public class UserController {
         this.roleRepository = roleRepository;
     }
 
+    @PermitAll
     @GetMapping
     public List<User> getAllUsers() {
-        return userService.findAll();
+        log.info("GET /api/users called");
+
+        List<User> users = userService.findAll();
+
+        log.debug("Found {} users", users.size());
+
+        return users;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
+        log.info("GET /api/users/{} called", id);
+
         return userService.findById(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    log.warn("User with id {} not found", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     @PostMapping

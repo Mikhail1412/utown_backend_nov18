@@ -15,3 +15,9 @@ spring:
 
 server:
   port: 8080
+
+
+logging:
+  level:
+    root: INFO
+    org.example.utown_backend_nov18: DEBUG

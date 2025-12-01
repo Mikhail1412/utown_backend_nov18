@@ -5,7 +5,9 @@ import org.example.utown_backend_nov18.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository users;
@@ -20,7 +22,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> findById(Long id) {
-       return users.findById(id);
+        log.debug("UserServiceImpl.findById called with id {}", id);
+        return users.findById(id);
     }
 
     @Override
@@ -68,7 +71,9 @@ public class UserServiceImpl implements UserService {
         return users.save(user);
     }
 
+    @Override
     public List<User> findAll() {
+        log.debug("UserServiceImpl.findAll called");
         return users.findAll();
     }
 }
