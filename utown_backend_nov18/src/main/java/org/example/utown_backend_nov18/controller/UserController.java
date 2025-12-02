@@ -1,5 +1,6 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.annotation.security.PermitAll;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.model.Role;
@@ -12,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.example.utown_backend_nov18.dto.UserDto;
 import lombok.extern.slf4j.Slf4j;
 
 @CrossOrigin(origins = "*")
@@ -22,8 +25,32 @@ public class UserController {
 
     private final UserService userService;
     private final RoleRepository roleRepository;
-
     private static final String NAME_RE = "^[\\p{L}\\s-]+$";
+    private UserDto toDto(User user) {
+        UserDto dto = new UserDto();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setAge(user.getAge());
+        dto.setEmail(user.getEmail());
+        dto.setRoles(
+                user.getRoles().stream()
+                        .map(Role::getName)
+                        .collect(Collectors.toSet())
+        );
+        return dto;
+    }
+
+    private User fromDto(UserDto dto) {
+        User user = new User();
+        user.setId(dto.getId());
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setAge(dto.getAge());
+        user.setEmail(dto.getEmail());
+
+        return user;
+    }
 
     public UserController(UserService userService,
                           RoleRepository roleRepository) {
@@ -33,21 +60,25 @@ public class UserController {
 
     @PermitAll
     @GetMapping
-    public List<User> getAllUsers() {
+    public List<UserDto> getAllUsers() {
         log.info("GET /api/users called");
-
         List<User> users = userService.findAll();
-
         log.debug("Found {} users", users.size());
 
-        return users;
+        return users.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         log.info("GET /api/users/{} called", id);
 
         return userService.findById(id)
+                .map(user -> {
+                    // здесь
+                    return toDto(user);
+                })
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> {
                     log.warn("User with id {} not found", id);
@@ -88,16 +119,21 @@ public class UserController {
         u.setRoles(roles);
 
         User saved = userService.save(u);
+        log.info("User created with id {}", saved.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        UserDto dto = toDto(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
+    @ApiResponse(responseCode = "404", description = "User not found")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updateUser(@PathVariable Long id,
                                         @RequestBody UpdateUserRequest req) {
+        log.info("PUT /api/users/{} called", id);
 
         Optional<User> opt = userService.findById(id);
         if (opt.isEmpty()) {
+            log.warn("PUT /api/users/{} - user not found", id);
             return ResponseEntity.notFound().build();
         }
 
@@ -130,7 +166,10 @@ public class UserController {
         }
 
         User saved = userService.save(existing);
-        return ResponseEntity.ok(saved);
+        log.info("User with id {} updated", saved.getId());
+
+        UserDto dto = toDto(saved);
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
