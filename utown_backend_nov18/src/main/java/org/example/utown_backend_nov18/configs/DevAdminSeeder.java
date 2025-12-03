@@ -8,7 +8,6 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -55,7 +54,7 @@ public class DevAdminSeeder {
             admin.setLastName("Root");
             admin.setEmail("admin@local");
             admin.setPassword(encoder.encode("1234"));
-            admin.setName("Admin");
+            admin.setName(admin.getFirstName() + " " + admin.getLastName());
             admin.setRoles(new HashSet<>(Set.of(rAdmin, rUser)));
             users.save(admin);
         });

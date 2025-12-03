@@ -14,6 +14,7 @@ public class AdminController {
 
     @GetMapping
     public String adminPage(Model model) {
+        log.info("GET /admin called");
         model.addAttribute("roles", roleRepository.findAll());
         return "admin/list";
     }
