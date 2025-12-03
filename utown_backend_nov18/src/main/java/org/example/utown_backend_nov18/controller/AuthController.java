@@ -4,8 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.utown_backend_nov18.security.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -26,18 +28,32 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        log.info("POST /api/auth/login called for email={}", request.getEmail());
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        if (request.getEmail() == null || request.getPassword() == null) {
+            log.warn("Login failed: email or password is null");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Email and password must not be null");
+        }
 
-        String token = jwtService.generateToken(authentication);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
 
-        return ResponseEntity.ok(new JwtResponse(token));
+            String token = jwtService.generateToken(authentication);
+            log.info("User {} successfully authenticated", request.getEmail());
+
+            return ResponseEntity.ok(new JwtResponse(token));
+        } catch (BadCredentialsException ex) {
+            log.warn("Login failed for email {}: bad credentials", request.getEmail());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
+        }
     }
 
     @Data
