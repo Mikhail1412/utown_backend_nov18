@@ -46,7 +46,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/dining-areas/**").permitAll()
                         .requestMatchers("/api/dishes/**").permitAll()
-
+                        .requestMatchers("/api/tables/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
