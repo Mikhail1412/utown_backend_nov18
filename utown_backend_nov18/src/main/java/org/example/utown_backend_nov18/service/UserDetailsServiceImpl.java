@@ -28,7 +28,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
         Set<GrantedAuthority> auths = u.getRoles().stream()
-                .map(Role::getName)
+                .map(role -> role.getName().name())     // "ROLE_USER", "ROLE_ADMIN" и т.п.
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet());
 

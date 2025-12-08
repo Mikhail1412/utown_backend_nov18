@@ -25,9 +25,7 @@ import org.example.utown_backend_nov18.dto.UpdateUserRequest;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-
     private final UserService userService;
-    private final RoleRepository roleRepository;
 
     private UserDto toDto(User user) {
         UserDto dto = new UserDto();
@@ -38,7 +36,7 @@ public class UserController {
         dto.setEmail(user.getEmail());
         dto.setRoles(
                 user.getRoles().stream()
-                        .map(Role::getName)
+                        .map(role -> role.getName().name())
                         .collect(Collectors.toSet())
         );
         return dto;
@@ -54,10 +52,8 @@ public class UserController {
         return user;
     }
 
-    public UserController(UserService userService,
-                          RoleRepository roleRepository) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.roleRepository = roleRepository;
     }
 
     @PermitAll
@@ -89,63 +85,23 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createUser(@Valid @RequestBody CreateUserRequest req) {
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest req) {
         log.info("POST /api/users called");
-
-        String firstName = req.getFirstName().trim();
-        String lastName  = req.getLastName().trim();
-
-        User u = new User();
-        u.setFirstName(firstName);
-        u.setLastName(lastName);
-        u.setAge(req.getAge());
-        u.setEmail(req.getEmail().trim());
-        u.setPassword(req.getPassword());
-
-        Set<Role> roles = new HashSet<>(roleRepository.findAllById(req.getRoleIds()));
-        u.setRoles(roles);
-        u.setName(firstName + " " + lastName);
-
-        User saved = userService.save(u);
-        log.info("User created with id {}", saved.getId());
-
-        UserDto dto = toDto(saved);
+        UserDto dto = userService.createUser(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @ApiResponse(responseCode = "404", description = "User not found")
     @PutMapping("/{id}")
-    public ResponseEntity<Object> updateUser(@PathVariable Long id,
-                                             @Valid @RequestBody UpdateUserRequest req) {
+    public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
+                                              @Valid @RequestBody UpdateUserRequest req) {
         log.info("PUT /api/users/{} called", id);
 
-        Optional<User> opt = userService.findById(id);
-        if (opt.isEmpty()) {
-            log.warn("PUT /api/users/{} - user not found", id);
-            return ResponseEntity.notFound().build();
-        }
-
-        User existing = opt.get();
-
-        String firstName = req.getFirstName().trim();
-        String lastName  = req.getLastName().trim();
-
-        existing.setFirstName(firstName);
-        existing.setLastName(lastName);
-        existing.setAge(req.getAge());
-        existing.setEmail(req.getEmail().trim());
-        existing.setName(firstName + " " + lastName);
-
-        if (req.getRoleIds() != null && !req.getRoleIds().isEmpty()) {
-            existing.setRoles(new HashSet<>(roleRepository.findAllById(req.getRoleIds())));
-        }
-
-        User saved = userService.save(existing);
-        log.info("User with id {} updated", saved.getId());
-
-        UserDto dto = toDto(saved);
-        return ResponseEntity.ok(dto);
+        return userService.updateUser(id, req)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
