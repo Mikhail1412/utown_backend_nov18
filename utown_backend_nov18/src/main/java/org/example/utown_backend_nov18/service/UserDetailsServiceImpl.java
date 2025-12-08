@@ -1,6 +1,5 @@
 package org.example.utown_backend_nov18.service;
 
-import org.example.utown_backend_nov18.model.Role;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.repository.UserRepository;
 import org.springframework.security.core.GrantedAuthority;
@@ -9,7 +8,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,8 +26,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
         Set<GrantedAuthority> auths = u.getRoles().stream()
-                .map(role -> role.getName().name())     // "ROLE_USER", "ROLE_ADMIN" и т.п.
-                .map(SimpleGrantedAuthority::new)
+                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
                 .collect(Collectors.toSet());
 
         return new org.springframework.security.core.userdetails.User(

@@ -5,14 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.CreateRestaurantTableRequest;
 import org.example.utown_backend_nov18.dto.RestaurantTableDto;
 import org.example.utown_backend_nov18.dto.UpdateRestaurantTableRequest;
-import org.example.utown_backend_nov18.model.DiningArea;
 import org.example.utown_backend_nov18.model.RestaurantTable;
-import org.example.utown_backend_nov18.service.DiningAreaService;
 import org.example.utown_backend_nov18.service.RestaurantTableService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,12 +21,9 @@ import java.util.stream.Collectors;
 public class RestaurantTableController {
 
     private final RestaurantTableService tableService;
-    private final DiningAreaService diningAreaService;
 
-    public RestaurantTableController(RestaurantTableService tableService,
-                                     DiningAreaService diningAreaService) {
+    public RestaurantTableController(RestaurantTableService tableService) {
         this.tableService = tableService;
-        this.diningAreaService = diningAreaService;
     }
 
     private RestaurantTableDto toDto(RestaurantTable t) {
@@ -67,23 +61,15 @@ public class RestaurantTableController {
     public ResponseEntity<?> create(@Valid @RequestBody CreateRestaurantTableRequest req) {
         log.info("POST /api/tables called");
 
-        Optional<DiningArea> areaOpt = diningAreaService.findById(req.getDiningAreaId());
-        if (areaOpt.isEmpty()) {
-            log.warn("DiningArea with id {} not found for table create", req.getDiningAreaId());
+        try {
+            RestaurantTable saved = tableService.createTable(req);
+            log.info("Table created with id {}", saved.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to create table: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("DiningArea not found");
+                    .body(ex.getMessage());
         }
-
-        RestaurantTable t = new RestaurantTable();
-        t.setTableNumber(req.getTableNumber().trim());
-        t.setCapacity(req.getCapacity());
-        t.setActive(true);
-        t.setDiningArea(areaOpt.get());
-
-        RestaurantTable saved = tableService.save(t);
-        log.info("Table created with id {}", saved.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
     }
 
     @PutMapping("/{id}")
@@ -91,42 +77,33 @@ public class RestaurantTableController {
                                     @Valid @RequestBody UpdateRestaurantTableRequest req) {
         log.info("PUT /api/tables/{} called", id);
 
-        Optional<RestaurantTable> tableOpt = tableService.findById(id);
-        if (tableOpt.isEmpty()) {
-            log.warn("Table with id {} not found for update", id);
-            return ResponseEntity.notFound().build();
-        }
+        try {
+            Optional<RestaurantTable> updatedOpt = tableService.updateTable(id, req);
+            if (updatedOpt.isEmpty()) {
+                log.warn("Table with id {} not found for update", id);
+                return ResponseEntity.notFound().build();
+            }
 
-        Optional<DiningArea> areaOpt = diningAreaService.findById(req.getDiningAreaId());
-        if (areaOpt.isEmpty()) {
-            log.warn("DiningArea with id {} not found for table update", req.getDiningAreaId());
+            RestaurantTable updated = updatedOpt.get();
+            log.info("Table with id {} updated", updated.getId());
+            return ResponseEntity.ok(toDto(updated));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to update table {}: {}", id, ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("DiningArea not found");
+                    .body(ex.getMessage());
         }
-
-        RestaurantTable existing = tableOpt.get();
-        existing.setTableNumber(req.getTableNumber().trim());
-        existing.setCapacity(req.getCapacity());
-        existing.setActive(req.isActive());
-        existing.setDiningArea(areaOpt.get());
-
-        RestaurantTable saved = tableService.save(existing);
-        log.info("Table with id {} updated", saved.getId());
-
-        return ResponseEntity.ok(toDto(saved));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/tables/{} called", id);
 
-        Optional<RestaurantTable> opt = tableService.findById(id);
-        if (opt.isEmpty()) {
+        boolean deleted = tableService.deleteTable(id);
+        if (!deleted) {
             log.warn("Table with id {} not found for delete", id);
             return ResponseEntity.notFound().build();
         }
 
-        tableService.deleteById(id);
         log.info("Table with id {} deleted", id);
         return ResponseEntity.noContent().build();
     }

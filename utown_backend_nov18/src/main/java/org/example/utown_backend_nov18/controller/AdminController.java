@@ -1,29 +1,27 @@
 package org.example.utown_backend_nov18.controller;
 
+import lombok.extern.slf4j.Slf4j;
+import org.example.utown_backend_nov18.service.RoleService;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.ui.Model;
-import org.example.utown_backend_nov18.repository.RoleRepository;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
+    private final RoleService roleService;
+
+    public AdminController(RoleService roleService) {
+        this.roleService = roleService;
+    }
+
     @GetMapping
     public String adminPage(Model model) {
         log.info("GET /admin called");
-        model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("roles", roleService.findAll());
         return "admin/list";
     }
-
-    private final RoleRepository roleRepository;
-
-    public AdminController(RoleRepository roleRepository) {
-        this.roleRepository = roleRepository;
-    }
 }
-
-

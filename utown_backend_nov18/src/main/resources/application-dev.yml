@@ -1,13 +1,13 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/utown_backend_nov18?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:spring}
-    password: ${DB_PASSWORD:springpass}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/utown_db}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -22,9 +22,9 @@ app:
   cors:
     allowed-origins: "http://localhost:3000,http://localhost:5173,http://localhost:8080"
 
-  jwt:
-    secret: "dev-super-secret-key-for-utown-backend-1234567890-VERY-LONG-AND-SAFE"
-    expiration-ms: 86400000
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 server:
   port: 8080

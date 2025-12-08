@@ -6,13 +6,10 @@ import org.example.utown_backend_nov18.dto.CreateDishRequest;
 import org.example.utown_backend_nov18.dto.DishDto;
 import org.example.utown_backend_nov18.dto.UpdateDishRequest;
 import org.example.utown_backend_nov18.model.Dish;
-import org.example.utown_backend_nov18.model.Restaurant;
 import org.example.utown_backend_nov18.service.DishService;
-import org.example.utown_backend_nov18.service.RestaurantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,12 +21,9 @@ import java.util.stream.Collectors;
 public class DishController {
 
     private final DishService dishService;
-    private final RestaurantService restaurantService;
 
-    public DishController(DishService dishService,
-                          RestaurantService restaurantService) {
+    public DishController(DishService dishService) {
         this.dishService = dishService;
-        this.restaurantService = restaurantService;
     }
 
     private DishDto toDto(Dish d) {
@@ -67,23 +61,15 @@ public class DishController {
     public ResponseEntity<?> create(@Valid @RequestBody CreateDishRequest req) {
         log.info("POST /api/dishes called");
 
-        Optional<Restaurant> restaurantOpt = restaurantService.findById(req.getRestaurantId());
-        if (restaurantOpt.isEmpty()) {
-            log.warn("Restaurant with id {} not found for dish create", req.getRestaurantId());
+        try {
+            Dish saved = dishService.createDish(req);
+            log.info("Dish created with id {}", saved.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to create dish: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Restaurant not found");
+                    .body(ex.getMessage());
         }
-
-        Dish d = new Dish();
-        d.setName(req.getName().trim());
-        d.setPrice(req.getPrice());
-        d.setDescription(req.getDescription().trim());
-        d.setRestaurant(restaurantOpt.get());
-
-        Dish saved = dishService.save(d);
-        log.info("Dish created with id {}", saved.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
     }
 
     @PutMapping("/{id}")
@@ -91,42 +77,32 @@ public class DishController {
                                     @Valid @RequestBody UpdateDishRequest req) {
         log.info("PUT /api/dishes/{} called", id);
 
-        Optional<Dish> dishOpt = dishService.findById(id);
-        if (dishOpt.isEmpty()) {
-            log.warn("Dish with id {} not found for update", id);
-            return ResponseEntity.notFound().build();
-        }
-
-        Optional<Restaurant> restaurantOpt = restaurantService.findById(req.getRestaurantId());
-        if (restaurantOpt.isEmpty()) {
-            log.warn("Restaurant with id {} not found for dish update", req.getRestaurantId());
+        try {
+            Optional<Dish> updatedOpt = dishService.updateDish(id, req);
+            if (updatedOpt.isEmpty()) {
+                log.warn("Dish with id {} not found for update", id);
+                return ResponseEntity.notFound().build();
+            }
+            Dish updated = updatedOpt.get();
+            log.info("Dish with id {} updated", updated.getId());
+            return ResponseEntity.ok(toDto(updated));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to update dish {}: {}", id, ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Restaurant not found");
+                    .body(ex.getMessage());
         }
-
-        Dish existing = dishOpt.get();
-        existing.setName(req.getName().trim());
-        existing.setPrice(req.getPrice());
-        existing.setDescription(req.getDescription().trim());
-        existing.setRestaurant(restaurantOpt.get());
-
-        Dish saved = dishService.save(existing);
-        log.info("Dish with id {} updated", saved.getId());
-
-        return ResponseEntity.ok(toDto(saved));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/dishes/{} called", id);
 
-        Optional<Dish> opt = dishService.findById(id);
-        if (opt.isEmpty()) {
+        boolean deleted = dishService.deleteDish(id);
+        if (!deleted) {
             log.warn("Dish with id {} not found for delete", id);
             return ResponseEntity.notFound().build();
         }
 
-        dishService.deleteById(id);
         log.info("Dish with id {} deleted", id);
         return ResponseEntity.noContent().build();
     }

@@ -6,13 +6,10 @@ import org.example.utown_backend_nov18.dto.CreateDiningAreaRequest;
 import org.example.utown_backend_nov18.dto.DiningAreaDto;
 import org.example.utown_backend_nov18.dto.UpdateDiningAreaRequest;
 import org.example.utown_backend_nov18.model.DiningArea;
-import org.example.utown_backend_nov18.model.Restaurant;
 import org.example.utown_backend_nov18.service.DiningAreaService;
-import org.example.utown_backend_nov18.service.RestaurantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,12 +21,9 @@ import java.util.stream.Collectors;
 public class DiningAreaController {
 
     private final DiningAreaService diningAreaService;
-    private final RestaurantService restaurantService;
 
-    public DiningAreaController(DiningAreaService diningAreaService,
-                                RestaurantService restaurantService) {
+    public DiningAreaController(DiningAreaService diningAreaService) {
         this.diningAreaService = diningAreaService;
-        this.restaurantService = restaurantService;
     }
 
     private DiningAreaDto toDto(DiningArea a) {
@@ -66,22 +60,15 @@ public class DiningAreaController {
     public ResponseEntity<?> create(@Valid @RequestBody CreateDiningAreaRequest req) {
         log.info("POST /api/dining-areas called");
 
-        Optional<Restaurant> restaurantOpt = restaurantService.findById(req.getRestaurantId());
-        if (restaurantOpt.isEmpty()) {
-            log.warn("Restaurant with id {} not found for dining area create", req.getRestaurantId());
+        try {
+            DiningArea saved = diningAreaService.createDiningArea(req);
+            log.info("DiningArea created with id {}", saved.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to create dining area: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Restaurant not found");
+                    .body(ex.getMessage());
         }
-
-        DiningArea a = new DiningArea();
-        a.setName(req.getName().trim());
-        a.setDescription(req.getDescription().trim());
-        a.setRestaurant(restaurantOpt.get());
-
-        DiningArea saved = diningAreaService.save(a);
-        log.info("DiningArea created with id {}", saved.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
     }
 
     @PutMapping("/{id}")
@@ -89,41 +76,33 @@ public class DiningAreaController {
                                     @Valid @RequestBody UpdateDiningAreaRequest req) {
         log.info("PUT /api/dining-areas/{} called", id);
 
-        Optional<DiningArea> areaOpt = diningAreaService.findById(id);
-        if (areaOpt.isEmpty()) {
-            log.warn("DiningArea with id {} not found for update", id);
-            return ResponseEntity.notFound().build();
-        }
+        try {
+            Optional<DiningArea> updatedOpt = diningAreaService.updateDiningArea(id, req);
+            if (updatedOpt.isEmpty()) {
+                log.warn("DiningArea with id {} not found for update", id);
+                return ResponseEntity.notFound().build();
+            }
 
-        Optional<Restaurant> restaurantOpt = restaurantService.findById(req.getRestaurantId());
-        if (restaurantOpt.isEmpty()) {
-            log.warn("Restaurant with id {} not found for dining area update", req.getRestaurantId());
+            DiningArea updated = updatedOpt.get();
+            log.info("DiningArea with id {} updated", updated.getId());
+            return ResponseEntity.ok(toDto(updated));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Failed to update dining area {}: {}", id, ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Restaurant not found");
+                    .body(ex.getMessage());
         }
-
-        DiningArea existing = areaOpt.get();
-        existing.setName(req.getName().trim());
-        existing.setDescription(req.getDescription().trim());
-        existing.setRestaurant(restaurantOpt.get());
-
-        DiningArea saved = diningAreaService.save(existing);
-        log.info("DiningArea with id {} updated", saved.getId());
-
-        return ResponseEntity.ok(toDto(saved));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/dining-areas/{} called", id);
 
-        Optional<DiningArea> opt = diningAreaService.findById(id);
-        if (opt.isEmpty()) {
+        boolean deleted = diningAreaService.deleteDiningArea(id);
+        if (!deleted) {
             log.warn("DiningArea with id {} not found for delete", id);
             return ResponseEntity.notFound().build();
         }
 
-        diningAreaService.deleteById(id);
         log.info("DiningArea with id {} deleted", id);
         return ResponseEntity.noContent().build();
     }

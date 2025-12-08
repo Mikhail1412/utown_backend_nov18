@@ -1,30 +1,26 @@
 package org.example.utown_backend_nov18.controller;
 
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.example.utown_backend_nov18.dto.CreateUserRequest;
+import org.example.utown_backend_nov18.dto.UpdateUserRequest;
+import org.example.utown_backend_nov18.dto.UserDto;
 import org.example.utown_backend_nov18.model.User;
-import org.example.utown_backend_nov18.model.Role;
-import org.example.utown_backend_nov18.repository.RoleRepository;
 import org.example.utown_backend_nov18.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.HashSet;
+
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
-import org.example.utown_backend_nov18.dto.UserDto;
-import lombok.extern.slf4j.Slf4j;
-import org.example.utown_backend_nov18.dto.CreateUserRequest;
-import org.example.utown_backend_nov18.dto.UpdateUserRequest;
 
 @CrossOrigin(origins = "*")
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
     private UserDto toDto(User user) {
@@ -42,21 +38,10 @@ public class UserController {
         return dto;
     }
 
-    private User fromDto(UserDto dto) {
-        User user = new User();
-        user.setId(dto.getId());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setAge(dto.getAge());
-        user.setEmail(dto.getEmail());
-        return user;
-    }
-
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    @PermitAll
     @GetMapping
     public List<UserDto> getAllUsers() {
         log.info("GET /api/users called");
@@ -73,22 +58,12 @@ public class UserController {
         log.info("GET /api/users/{} called", id);
 
         return userService.findById(id)
-                .map(user -> {
-                    // здесь
-                    return toDto(user);
-                })
+                .map(this::toDto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> {
                     log.warn("User with id {} not found", id);
                     return ResponseEntity.notFound().build();
                 });
-    }
-
-    @PostMapping
-    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest req) {
-        log.info("POST /api/users called");
-        UserDto dto = userService.createUser(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @ApiResponse(responseCode = "404", description = "User not found")
@@ -102,7 +77,6 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         log.info("DELETE /api/users/{} called", id);
@@ -111,6 +85,7 @@ public class UserController {
             log.warn("DELETE /api/users/{} - user not found", id);
             return ResponseEntity.notFound().build();
         }
+
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

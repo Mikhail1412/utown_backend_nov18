@@ -1,5 +1,7 @@
 package org.example.utown_backend_nov18.service;
 
+import org.example.utown_backend_nov18.dto.CreateRestaurantRequest;
+import org.example.utown_backend_nov18.dto.UpdateRestaurantRequest;
 import org.example.utown_backend_nov18.model.Restaurant;
 import org.example.utown_backend_nov18.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
@@ -24,11 +26,35 @@ public class RestaurantService {
         return repo.findById(id);
     }
 
-    public Restaurant save(Restaurant restaurant) {
-        return repo.save(restaurant);
+    public Restaurant createRestaurant(CreateRestaurantRequest req) {
+        Restaurant r = new Restaurant();
+        r.setName(safeTrim(req.getName()));
+        r.setAddress(safeTrim(req.getAddress()));
+        r.setPhoneNumber(safeTrim(req.getPhoneNumber()));
+        r.setDescription(safeTrim(req.getDescription()));
+        return repo.save(r);
     }
 
-    public void deleteById(Long id) {
+    public Optional<Restaurant> updateRestaurant(Long id, UpdateRestaurantRequest req) {
+        return repo.findById(id)
+                .map(existing -> {
+                    existing.setName(safeTrim(req.getName()));
+                    existing.setAddress(safeTrim(req.getAddress()));
+                    existing.setPhoneNumber(safeTrim(req.getPhoneNumber()));
+                    existing.setDescription(safeTrim(req.getDescription()));
+                    return repo.save(existing);
+                });
+    }
+
+    public boolean deleteRestaurant(Long id) {
+        if (!repo.existsById(id)) {
+            return false;
+        }
         repo.deleteById(id);
+        return true;
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? null : value.trim();
     }
 }

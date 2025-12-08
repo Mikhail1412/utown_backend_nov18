@@ -10,6 +10,8 @@ import org.example.utown_backend_nov18.repository.RoleRepository;
 import org.example.utown_backend_nov18.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -170,11 +172,14 @@ public class UserServiceImpl implements UserService {
         dto.setLastName(user.getLastName());
         dto.setAge(user.getAge());
         dto.setEmail(user.getEmail());
-        dto.setRoles(
-                user.getRoles().stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toSet())
-        );
+
+        Set<String> roleNames = (user.getRoles() == null)
+                ? Collections.emptySet()
+                : user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toSet());
+
+        dto.setRoles(roleNames);
         return dto;
     }
 }

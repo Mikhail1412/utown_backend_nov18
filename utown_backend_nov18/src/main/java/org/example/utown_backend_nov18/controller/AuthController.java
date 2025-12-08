@@ -1,5 +1,6 @@
 package org.example.utown_backend_nov18.controller;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,7 +39,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         log.info("POST /api/auth/login called for email={}", request.getEmail());
 
         if (request.getEmail() == null || request.getPassword() == null) {
@@ -57,18 +58,20 @@ public class AuthController {
             String token = jwtService.generateToken(authentication);
             return ResponseEntity.ok(new JwtResponse(token));
         } catch (BadCredentialsException ex) {
+            log.warn("Invalid credentials for email={}", request.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid email or password");
         }
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@RequestBody CreateUserRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody CreateUserRequest request) {
         log.info("POST /api/auth/register called for email={}", request.getEmail());
 
         String rawPassword = request.getPassword();
         if (rawPassword == null || rawPassword.isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Password must not be empty");
         }
 
         request.setPassword(passwordEncoder.encode(rawPassword));

@@ -10,7 +10,6 @@ import org.example.utown_backend_nov18.service.RestaurantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -62,13 +61,7 @@ public class RestaurantController {
     public ResponseEntity<RestaurantDto> create(@Valid @RequestBody CreateRestaurantRequest req) {
         log.info("POST /api/restaurants called");
 
-        Restaurant r = new Restaurant();
-        r.setName(req.getName().trim());
-        r.setAddress(req.getAddress().trim());
-        r.setPhoneNumber(req.getPhoneNumber().trim());
-        r.setDescription(req.getDescription().trim());
-
-        Restaurant saved = service.save(r);
+        Restaurant saved = service.createRestaurant(req);
         log.info("Restaurant created with id {}", saved.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
@@ -79,19 +72,13 @@ public class RestaurantController {
                                                 @Valid @RequestBody UpdateRestaurantRequest req) {
         log.info("PUT /api/restaurants/{} called", id);
 
-        Optional<Restaurant> opt = service.findById(id);
+        Optional<Restaurant> opt = service.updateRestaurant(id, req);
         if (opt.isEmpty()) {
             log.warn("Restaurant with id {} not found", id);
             return ResponseEntity.notFound().build();
         }
 
-        Restaurant existing = opt.get();
-        existing.setName(req.getName().trim());
-        existing.setAddress(req.getAddress().trim());
-        existing.setPhoneNumber(req.getPhoneNumber().trim());
-        existing.setDescription(req.getDescription().trim());
-
-        Restaurant saved = service.save(existing);
+        Restaurant saved = opt.get();
         log.info("Restaurant with id {} updated", saved.getId());
 
         return ResponseEntity.ok(toDto(saved));
@@ -101,13 +88,12 @@ public class RestaurantController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/restaurants/{} called", id);
 
-        Optional<Restaurant> opt = service.findById(id);
-        if (opt.isEmpty()) {
+        boolean deleted = service.deleteRestaurant(id);
+        if (!deleted) {
             log.warn("Restaurant with id {} not found", id);
             return ResponseEntity.notFound().build();
         }
 
-        service.deleteById(id);
         log.info("Restaurant with id {} deleted", id);
         return ResponseEntity.noContent().build();
     }
