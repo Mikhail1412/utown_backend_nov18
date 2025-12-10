@@ -26,6 +26,5 @@ public class CreateUserRequest {
     @NotBlank(message = "Пароль обязателен")
     private String password;
 
-    @NotEmpty(message = "Нужно выбрать хотя бы одну роль")
     private List<Long> roleIds;
 }

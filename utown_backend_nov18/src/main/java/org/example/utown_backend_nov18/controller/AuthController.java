@@ -15,7 +15,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -26,16 +25,13 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtService jwtService,
-                          UserService userService,
-                          PasswordEncoder passwordEncoder) {
+                          UserService userService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/login")
@@ -68,13 +64,10 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody CreateUserRequest request) {
         log.info("POST /api/auth/register called for email={}", request.getEmail());
 
-        String rawPassword = request.getPassword();
-        if (rawPassword == null || rawPassword.isBlank()) {
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Password must not be empty");
         }
-
-        request.setPassword(passwordEncoder.encode(rawPassword));
 
         UserDto dto = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);

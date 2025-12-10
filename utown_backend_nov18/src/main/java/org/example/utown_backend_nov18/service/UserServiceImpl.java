@@ -5,12 +5,13 @@ import org.example.utown_backend_nov18.dto.CreateUserRequest;
 import org.example.utown_backend_nov18.dto.UpdateUserRequest;
 import org.example.utown_backend_nov18.dto.UserDto;
 import org.example.utown_backend_nov18.model.Role;
+import org.example.utown_backend_nov18.model.RoleName;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.repository.RoleRepository;
 import org.example.utown_backend_nov18.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -24,10 +25,14 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository users;
     private final RoleRepository roles;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository users, RoleRepository roles) {
+    public UserServiceImpl(UserRepository users,
+                           RoleRepository roles,
+                           PasswordEncoder passwordEncoder) {
         this.users = users;
         this.roles = roles;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -113,18 +118,29 @@ public class UserServiceImpl implements UserService {
     public UserDto createUser(CreateUserRequest req) {
         String firstName = req.getFirstName().trim();
         String lastName  = req.getLastName().trim();
+        String email     = req.getEmail().trim().toLowerCase();
+
+        if (users.findByEmail(email).isPresent()) {
+            log.warn("Attempt to register with existing email {}", email);
+            throw new IllegalArgumentException("Email already in use: " + email);
+        }
 
         User user = new User();
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setAge(req.getAge());
-        user.setEmail(req.getEmail().trim());
-        user.setPassword(req.getPassword());
+        user.setEmail(email);
 
-        if (req.getRoleIds() != null && !req.getRoleIds().isEmpty()) {
-            Set<Role> roleSet = new HashSet<>(roles.findAllById(req.getRoleIds()));
-            user.setRoles(roleSet);
-        }
+        String rawPassword = req.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        user.setPassword(encodedPassword);
+
+        Role userRole = roles.findByName(RoleName.ROLE_USER)
+                .orElseThrow(() -> new IllegalStateException("Default USER role not found"));
+
+        Set<Role> roleSet = new HashSet<>();
+        roleSet.add(userRole);
+        user.setRoles(roleSet);
 
         user.setName(firstName + " " + lastName);
 
@@ -147,11 +163,12 @@ public class UserServiceImpl implements UserService {
 
         String firstName = req.getFirstName().trim();
         String lastName  = req.getLastName().trim();
+        String email     = req.getEmail().trim().toLowerCase();
 
         existing.setFirstName(firstName);
         existing.setLastName(lastName);
         existing.setAge(req.getAge());
-        existing.setEmail(req.getEmail().trim());
+        existing.setEmail(email);
         existing.setName(firstName + " " + lastName);
 
         if (req.getRoleIds() != null && !req.getRoleIds().isEmpty()) {

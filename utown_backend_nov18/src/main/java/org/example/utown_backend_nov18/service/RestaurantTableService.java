@@ -6,7 +6,6 @@ import org.example.utown_backend_nov18.model.DiningArea;
 import org.example.utown_backend_nov18.model.RestaurantTable;
 import org.example.utown_backend_nov18.repository.RestaurantTableRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 

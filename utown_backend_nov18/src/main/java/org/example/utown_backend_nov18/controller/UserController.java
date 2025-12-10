@@ -3,15 +3,12 @@ package org.example.utown_backend_nov18.controller;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.example.utown_backend_nov18.dto.CreateUserRequest;
 import org.example.utown_backend_nov18.dto.UpdateUserRequest;
 import org.example.utown_backend_nov18.dto.UserDto;
 import org.example.utown_backend_nov18.model.User;
 import org.example.utown_backend_nov18.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.stream.Collectors;
 

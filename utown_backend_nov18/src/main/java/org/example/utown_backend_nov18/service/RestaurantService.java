@@ -5,7 +5,6 @@ import org.example.utown_backend_nov18.dto.UpdateRestaurantRequest;
 import org.example.utown_backend_nov18.model.Restaurant;
 import org.example.utown_backend_nov18.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
