@@ -9,4 +9,5 @@ public class RestaurantDto {
     private String address;
     private String phoneNumber;
     private String description;
+    private String status;
 }

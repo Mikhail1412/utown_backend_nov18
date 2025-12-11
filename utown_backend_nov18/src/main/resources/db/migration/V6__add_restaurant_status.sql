@@ -1,0 +1,2 @@
+ALTER TABLE restaurants
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'OPEN';

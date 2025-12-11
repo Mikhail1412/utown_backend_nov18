@@ -2,7 +2,9 @@ package org.example.utown_backend_nov18.service;
 
 import org.example.utown_backend_nov18.dto.CreateRestaurantRequest;
 import org.example.utown_backend_nov18.dto.UpdateRestaurantRequest;
+import org.example.utown_backend_nov18.exception.NotFoundException;
 import org.example.utown_backend_nov18.model.Restaurant;
+import org.example.utown_backend_nov18.model.RestaurantStatus;
 import org.example.utown_backend_nov18.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -55,5 +57,14 @@ public class RestaurantService {
 
     private String safeTrim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    public Restaurant updateStatus(Long restaurantId, RestaurantStatus status) {
+        return repo.findById(restaurantId)
+                .map(restaurant -> {
+                    restaurant.setStatus(status);
+                    return repo.save(restaurant);
+                })
+                .orElseThrow(() -> new NotFoundException("Restaurant not found: " + restaurantId));
     }
 }

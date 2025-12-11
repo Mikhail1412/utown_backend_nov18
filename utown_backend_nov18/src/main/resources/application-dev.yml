@@ -33,3 +33,8 @@ logging:
   level:
     root: INFO
     org.example.utown_backend_nov18: DEBUG
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  override-with-generic-response: false

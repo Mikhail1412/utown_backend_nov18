@@ -6,10 +6,12 @@ import org.example.utown_backend_nov18.dto.CreateRestaurantRequest;
 import org.example.utown_backend_nov18.dto.RestaurantDto;
 import org.example.utown_backend_nov18.dto.UpdateRestaurantRequest;
 import org.example.utown_backend_nov18.model.Restaurant;
+import org.example.utown_backend_nov18.model.RestaurantStatus;
 import org.example.utown_backend_nov18.service.RestaurantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,6 +35,9 @@ public class RestaurantController {
         dto.setAddress(r.getAddress());
         dto.setPhoneNumber(r.getPhoneNumber());
         dto.setDescription(r.getDescription());
+        if (r.getStatus() != null) {
+            dto.setStatus(r.getStatus().name());
+        }
         return dto;
     }
 
@@ -96,5 +101,16 @@ public class RestaurantController {
 
         log.info("Restaurant with id {} deleted", id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<RestaurantDto> updateStatus(@PathVariable Long id,
+                                                      @RequestParam("status") RestaurantStatus status) {
+        log.info("PATCH /api/restaurants/{}/status called with status={}", id, status);
+
+        Restaurant updated = service.updateStatus(id, status);
+        log.info("Restaurant with id {} status updated to {}", updated.getId(), updated.getStatus());
+
+        return ResponseEntity.ok(toDto(updated));
     }
 }

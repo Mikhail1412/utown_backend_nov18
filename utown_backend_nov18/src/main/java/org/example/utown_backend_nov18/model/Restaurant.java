@@ -29,4 +29,9 @@ public class Restaurant {
 
     @Column(nullable = false)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RestaurantStatus status = RestaurantStatus.OPEN;
+
 }

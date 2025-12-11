@@ -5,12 +5,17 @@ import org.example.utown_backend_nov18.dto.AddOrderItemRequest;
 import org.example.utown_backend_nov18.dto.CreateOrderRequest;
 import org.example.utown_backend_nov18.dto.OrderDto;
 import org.example.utown_backend_nov18.dto.OrderItemDto;
+import org.example.utown_backend_nov18.exception.AccessDeniedDomainException;
+import org.example.utown_backend_nov18.exception.BusinessConflictException;
+import org.example.utown_backend_nov18.exception.EmptyOrderException;
+import org.example.utown_backend_nov18.exception.NotFoundException;
 import org.example.utown_backend_nov18.model.*;
 import org.example.utown_backend_nov18.repository.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +50,7 @@ public class OrderServiceImpl implements OrderService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Current user not found by email: " + email));
+                .orElseThrow(() -> new NotFoundException("Current user not found by email: " + email));
     }
 
     @Override
@@ -54,12 +59,39 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getCurrentUser();
 
         Restaurant restaurant = restaurantRepository.findById(req.getRestaurantId())
-                .orElseThrow(() -> new IllegalArgumentException("Restaurant not found: " + req.getRestaurantId()));
+                .orElseThrow(() -> new NotFoundException("Restaurant not found: " + req.getRestaurantId()));
+
+        if (restaurant.getStatus() == RestaurantStatus.CLOSED) {
+            throw new BusinessConflictException("Restaurant is closed for orders");
+        }
 
         RestaurantTable table = null;
         if (req.getTableId() != null) {
             table = restaurantTableRepository.findById(req.getTableId())
-                    .orElseThrow(() -> new IllegalArgumentException("Table not found: " + req.getTableId()));
+                    .orElseThrow(() -> new NotFoundException("Table not found: " + req.getTableId()));
+
+            if (table.getDiningArea() == null
+                    || table.getDiningArea().getRestaurant() == null
+                    || !table.getDiningArea().getRestaurant().getId().equals(restaurant.getId())) {
+                throw new BusinessConflictException("Table does not belong to this restaurant");
+            }
+        }
+
+        Optional<Order> existingDraftOpt =
+                orderRepository.findByUserAndRestaurantAndStatus(currentUser, restaurant, OrderStatus.DRAFT);
+
+        if (existingDraftOpt.isPresent()) {
+            Order existing = existingDraftOpt.get();
+
+            if (table != null) {
+                existing.setTable(table);
+            }
+
+            log.info("Reusing existing DRAFT order {} for user {} and restaurant {}",
+                    existing.getId(), currentUser.getEmail(), restaurant.getId());
+
+            Order saved = orderRepository.save(existing);
+            return toDto(saved);
         }
 
         Order order = new Order();
@@ -81,17 +113,21 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
         if (!order.getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalStateException("You can modify only your own orders");
+            throw new AccessDeniedDomainException("You can modify only your own orders");
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT orders can be modified");
+            throw new BusinessConflictException("Only DRAFT orders can be modified");
         }
 
         Dish dish = dishRepository.findById(req.getDishId())
-                .orElseThrow(() -> new IllegalArgumentException("Dish not found: " + req.getDishId()));
+                .orElseThrow(() -> new NotFoundException("Dish not found: " + req.getDishId()));
+
+        if (!dish.getRestaurant().getId().equals(order.getRestaurant().getId())) {
+            throw new BusinessConflictException("Dish does not belong to this restaurant");
+        }
 
         OrderItem item = new OrderItem();
         item.setOrder(order);
@@ -113,19 +149,19 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
         if (!order.getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalStateException("You can modify only your own orders");
+            throw new AccessDeniedDomainException("You can modify only your own orders");
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT orders can be modified");
+            throw new BusinessConflictException("Only DRAFT orders can be modified");
         }
 
         OrderItem item = order.getItems().stream()
                 .filter(i -> i.getId().equals(itemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + itemId));
+                .orElseThrow(() -> new NotFoundException("Order item not found: " + itemId));
 
         item.setQuantity(req.getQuantity());
 
@@ -141,20 +177,20 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
         if (!order.getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalStateException("You can modify only your own orders");
+            throw new AccessDeniedDomainException("You can modify only your own orders");
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT orders can be modified");
+            throw new BusinessConflictException("Only DRAFT orders can be modified");
         }
 
         Set<OrderItem> items = order.getItems();
         OrderItem toRemove = items.stream()
                 .filter(i -> i.getId().equals(itemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + itemId));
+                .orElseThrow(() -> new NotFoundException("Order item not found: " + itemId));
 
         items.remove(toRemove);
         orderItemRepository.delete(toRemove);
@@ -171,17 +207,21 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
         if (!order.getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalStateException("You can modify only your own orders");
+            throw new AccessDeniedDomainException("You can modify only your own orders");
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT orders can be checked out");
+            throw new BusinessConflictException("Only DRAFT orders can be checked out");
         }
 
         if (order.getItems().isEmpty()) {
-            throw new IllegalStateException("Cannot checkout empty order");
+            throw new EmptyOrderException("Cannot checkout empty order");
+        }
+
+        if (order.getRestaurant().getStatus() == RestaurantStatus.CLOSED) {
+            throw new BusinessConflictException("Restaurant is closed for orders");
         }
 
         order.setStatus(OrderStatus.PLACED);
@@ -206,7 +246,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForRestaurant(Long restaurantId) {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new IllegalArgumentException("Restaurant not found: " + restaurantId));
+                .orElseThrow(() -> new NotFoundException("Restaurant not found: " + restaurantId));
 
         List<Order> orders = orderRepository.findByRestaurant(restaurant);
         return orders.stream()
@@ -224,7 +264,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDto updateStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
         order.setStatus(status);
         Order saved = orderRepository.save(order);
