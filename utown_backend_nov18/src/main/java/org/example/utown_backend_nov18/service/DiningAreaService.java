@@ -30,8 +30,7 @@ public class DiningAreaService {
     }
 
     public DiningArea createDiningArea(CreateDiningAreaRequest req) {
-        Restaurant restaurant = restaurantService.findById(req.getRestaurantId())
-                .orElseThrow(() -> new IllegalArgumentException("Restaurant not found"));
+        Restaurant restaurant = restaurantService.findByIdOrThrow(req.getRestaurantId());
 
         DiningArea a = new DiningArea();
         a.setName(safeTrim(req.getName()));
@@ -44,8 +43,7 @@ public class DiningAreaService {
     public Optional<DiningArea> updateDiningArea(Long id, UpdateDiningAreaRequest req) {
         return diningAreaRepository.findById(id)
                 .map(existing -> {
-                    Restaurant restaurant = restaurantService.findById(req.getRestaurantId())
-                            .orElseThrow(() -> new IllegalArgumentException("Restaurant not found"));
+                    Restaurant restaurant = restaurantService.findByIdOrThrow(req.getRestaurantId());
 
                     existing.setName(safeTrim(req.getName()));
                     existing.setDescription(safeTrim(req.getDescription()));
