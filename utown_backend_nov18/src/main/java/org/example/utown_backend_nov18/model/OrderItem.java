@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "order_items")
 @Data
@@ -27,6 +29,6 @@ public class OrderItem {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Integer priceAtMoment;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal priceAtMoment = BigDecimal.ZERO;
 }

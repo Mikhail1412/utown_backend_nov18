@@ -5,6 +5,7 @@ import org.example.utown_backend_nov18.dto.AddOrderItemRequest;
 import org.example.utown_backend_nov18.dto.CreateOrderRequest;
 import org.example.utown_backend_nov18.dto.OrderDto;
 import org.example.utown_backend_nov18.dto.OrderItemDto;
+import org.example.utown_backend_nov18.dto.UpdateOrderItemRequest;
 import org.example.utown_backend_nov18.exception.AccessDeniedDomainException;
 import org.example.utown_backend_nov18.exception.BusinessConflictException;
 import org.example.utown_backend_nov18.exception.EmptyOrderException;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,6 +55,11 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new NotFoundException("Current user not found by email: " + email));
     }
 
+    private boolean isAdmin() {
+        return SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
     @Override
     @Transactional
     public OrderDto createOrder(CreateOrderRequest req) {
@@ -82,7 +89,6 @@ public class OrderServiceImpl implements OrderService {
 
         if (existingDraftOpt.isPresent()) {
             Order existing = existingDraftOpt.get();
-
             if (table != null) {
                 existing.setTable(table);
             }
@@ -99,7 +105,7 @@ public class OrderServiceImpl implements OrderService {
         order.setRestaurant(restaurant);
         order.setTable(table);
         order.setStatus(OrderStatus.DRAFT);
-        order.setTotalPrice(0);
+        order.setTotalPrice(BigDecimal.ZERO);
 
         Order saved = orderRepository.save(order);
         log.info("Order created with id {} by user {}", saved.getId(), currentUser.getEmail());
@@ -121,6 +127,9 @@ public class OrderServiceImpl implements OrderService {
         if (order.getStatus() != OrderStatus.DRAFT) {
             throw new BusinessConflictException("Only DRAFT orders can be modified");
         }
+        if (order.getRestaurant().getStatus() == RestaurantStatus.CLOSED) {
+            throw new BusinessConflictException("Restaurant is closed for orders");
+        }
 
         Dish dish = dishRepository.findById(req.getDishId())
                 .orElseThrow(() -> new NotFoundException("Dish not found: " + req.getDishId()));
@@ -133,7 +142,7 @@ public class OrderServiceImpl implements OrderService {
         item.setOrder(order);
         item.setDish(dish);
         item.setQuantity(req.getQuantity());
-        item.setPriceAtMoment(dish.getPrice().intValue());
+        item.setPriceAtMoment(dish.getPrice());
 
         order.getItems().add(item);
 
@@ -145,7 +154,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderDto updateItem(Long orderId, Long itemId, AddOrderItemRequest req) {
+    public OrderDto updateItem(Long orderId, Long itemId, UpdateOrderItemRequest req) {
         User currentUser = getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
@@ -156,6 +165,9 @@ public class OrderServiceImpl implements OrderService {
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
             throw new BusinessConflictException("Only DRAFT orders can be modified");
+        }
+        if (order.getRestaurant().getStatus() == RestaurantStatus.CLOSED) {
+            throw new BusinessConflictException("Restaurant is closed for orders");
         }
 
         OrderItem item = order.getItems().stream()
@@ -184,6 +196,9 @@ public class OrderServiceImpl implements OrderService {
         }
         if (order.getStatus() != OrderStatus.DRAFT) {
             throw new BusinessConflictException("Only DRAFT orders can be modified");
+        }
+        if (order.getRestaurant().getStatus() == RestaurantStatus.CLOSED) {
+            throw new BusinessConflictException("Restaurant is closed for orders");
         }
 
         Set<OrderItem> items = order.getItems();
@@ -257,24 +272,52 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public Optional<OrderDto> getById(Long id) {
-        return orderRepository.findById(id).map(this::toDto);
+        User currentUser = getCurrentUser();
+
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + id));
+
+        if (!isAdmin() && !order.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedDomainException("You can view only your own orders");
+        }
+
+        return Optional.of(toDto(order));
     }
 
     @Override
     @Transactional
     public OrderDto updateStatus(Long orderId, OrderStatus status) {
+        User currentUser = getCurrentUser();
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
+        if (!isAdmin()) {
+
+            if (!order.getUser().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedDomainException("You can modify only your own orders");
+            }
+
+            if (status != OrderStatus.CANCELLED) {
+                throw new AccessDeniedDomainException("Only ADMIN can set this status");
+            }
+
+            if (order.getStatus() != OrderStatus.DRAFT && order.getStatus() != OrderStatus.PLACED) {
+                throw new BusinessConflictException("This order cannot be cancelled");
+            }
+        }
+
         order.setStatus(status);
+
         Order saved = orderRepository.save(order);
         return toDto(saved);
     }
 
     private void recalcTotal(Order order) {
-        int total = order.getItems().stream()
-                .mapToInt(i -> i.getPriceAtMoment() * i.getQuantity())
-                .sum();
+        BigDecimal total = order.getItems().stream()
+                .map(i -> i.getPriceAtMoment().multiply(BigDecimal.valueOf(i.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         order.setTotalPrice(total);
     }
 

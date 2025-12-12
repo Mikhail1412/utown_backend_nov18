@@ -3,6 +3,7 @@ package org.example.utown_backend_nov18.service;
 import org.example.utown_backend_nov18.dto.AddOrderItemRequest;
 import org.example.utown_backend_nov18.dto.CreateOrderRequest;
 import org.example.utown_backend_nov18.dto.OrderDto;
+import org.example.utown_backend_nov18.dto.UpdateOrderItemRequest;
 import org.example.utown_backend_nov18.model.OrderStatus;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,7 @@ public interface OrderService {
 
     OrderDto addItem(Long orderId, AddOrderItemRequest req);
 
-    OrderDto updateItem(Long orderId, Long itemId, AddOrderItemRequest req);
+    OrderDto updateItem(Long orderId, Long itemId, UpdateOrderItemRequest req);
 
     OrderDto removeItem(Long orderId, Long itemId);
 

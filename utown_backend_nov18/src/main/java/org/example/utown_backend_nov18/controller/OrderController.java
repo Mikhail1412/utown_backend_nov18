@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.AddOrderItemRequest;
 import org.example.utown_backend_nov18.dto.CreateOrderRequest;
 import org.example.utown_backend_nov18.dto.OrderDto;
+import org.example.utown_backend_nov18.dto.UpdateOrderItemRequest;
 import org.example.utown_backend_nov18.dto.UpdateOrderStatusRequest;
 import org.example.utown_backend_nov18.model.OrderStatus;
 import org.example.utown_backend_nov18.service.OrderService;
@@ -43,7 +44,7 @@ public class OrderController {
     @PatchMapping("/orders/{orderId}/items/{itemId}")
     public ResponseEntity<OrderDto> updateItem(@PathVariable Long orderId,
                                                @PathVariable Long itemId,
-                                               @Valid @RequestBody AddOrderItemRequest req) {
+                                               @Valid @RequestBody UpdateOrderItemRequest req) {
         log.info("PATCH /api/orders/{}/items/{} - update item", orderId, itemId);
         OrderDto dto = orderService.updateItem(orderId, itemId, req);
         return ResponseEntity.ok(dto);
