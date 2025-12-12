@@ -1,5 +1,10 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.CreateRestaurantTableRequest;
@@ -18,6 +23,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/tables")
 @CrossOrigin(origins = "*")
+@Tag(name = "RestaurantTables")
+@SecurityRequirement(name = "bearerAuth")
 public class RestaurantTableController {
 
     private final RestaurantTableService tableService;
@@ -36,6 +43,12 @@ public class RestaurantTableController {
         return dto;
     }
 
+    @Operation(summary = "Get all tables")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tables list"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping
     public List<RestaurantTableDto> getAll() {
         log.info("GET /api/tables called");
@@ -46,6 +59,13 @@ public class RestaurantTableController {
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "Get table by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Table"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Table not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<RestaurantTableDto> getById(@PathVariable Long id) {
         log.info("GET /api/tables/{} called", id);
@@ -57,6 +77,15 @@ public class RestaurantTableController {
         return ResponseEntity.ok(toDto(opt.get()));
     }
 
+    @Operation(summary = "Create table")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Table created"),
+            @ApiResponse(responseCode = "400", description = "Bad request (illegal argument / validation)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Dining area not found (if validated in service)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody CreateRestaurantTableRequest req) {
         log.info("POST /api/tables called");
@@ -72,6 +101,15 @@ public class RestaurantTableController {
         }
     }
 
+    @Operation(summary = "Update table")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Table updated"),
+            @ApiResponse(responseCode = "400", description = "Bad request (illegal argument / validation)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "404", description = "Table not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
                                     @Valid @RequestBody UpdateRestaurantTableRequest req) {
@@ -94,6 +132,13 @@ public class RestaurantTableController {
         }
     }
 
+    @Operation(summary = "Delete table")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Table deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Table not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/tables/{} called", id);

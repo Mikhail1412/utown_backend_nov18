@@ -1,5 +1,10 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.CreateDiningAreaRequest;
@@ -18,6 +23,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/dining-areas")
 @CrossOrigin(origins = "*")
+@Tag(name = "DiningAreas")
+@SecurityRequirement(name = "bearerAuth")
 public class DiningAreaController {
 
     private final DiningAreaService diningAreaService;
@@ -35,6 +42,12 @@ public class DiningAreaController {
         return dto;
     }
 
+    @Operation(summary = "Get all dining areas")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dining areas list"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping
     public List<DiningAreaDto> getAll() {
         log.info("GET /api/dining-areas called");
@@ -45,6 +58,13 @@ public class DiningAreaController {
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "Get dining area by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dining area"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Dining area not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<DiningAreaDto> getById(@PathVariable Long id) {
         log.info("GET /api/dining-areas/{} called", id);
@@ -56,6 +76,15 @@ public class DiningAreaController {
         return ResponseEntity.ok(toDto(opt.get()));
     }
 
+    @Operation(summary = "Create dining area")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Dining area created"),
+            @ApiResponse(responseCode = "400", description = "Bad request (illegal argument / validation)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Restaurant not found (if validated in service)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody CreateDiningAreaRequest req) {
         log.info("POST /api/dining-areas called");
@@ -71,6 +100,15 @@ public class DiningAreaController {
         }
     }
 
+    @Operation(summary = "Update dining area")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dining area updated"),
+            @ApiResponse(responseCode = "400", description = "Bad request (illegal argument / validation)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "404", description = "Dining area not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
                                     @Valid @RequestBody UpdateDiningAreaRequest req) {
@@ -93,6 +131,13 @@ public class DiningAreaController {
         }
     }
 
+    @Operation(summary = "Delete dining area")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Dining area deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Dining area not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/dining-areas/{} called", id);

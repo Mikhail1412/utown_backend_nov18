@@ -1,23 +1,30 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.CreateDishRequest;
 import org.example.utown_backend_nov18.dto.DishDto;
 import org.example.utown_backend_nov18.dto.UpdateDishRequest;
+import org.example.utown_backend_nov18.exception.NotFoundException;
 import org.example.utown_backend_nov18.model.Dish;
 import org.example.utown_backend_nov18.service.DishService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/dishes")
 @CrossOrigin(origins = "*")
+@Tag(name = "Dishes")
+@SecurityRequirement(name = "bearerAuth")
 public class DishController {
 
     private final DishService dishService;
@@ -36,74 +43,80 @@ public class DishController {
         return dto;
     }
 
+    @Operation(summary = "Get all dishes")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dishes list"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping
     public List<DishDto> getAll() {
         log.info("GET /api/dishes called");
-        List<Dish> list = dishService.findAll();
-        log.debug("Found {} dishes", list.size());
-        return list.stream()
+        return dishService.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "Get dish by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dish"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Dish not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<DishDto> getById(@PathVariable Long id) {
+    public DishDto getById(@PathVariable Long id) {
         log.info("GET /api/dishes/{} called", id);
-        Optional<Dish> opt = dishService.findById(id);
-        if (opt.isEmpty()) {
-            log.warn("Dish with id {} not found", id);
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(toDto(opt.get()));
+        Dish d = dishService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Dish not found: " + id));
+        return toDto(d);
     }
 
+    @Operation(summary = "Create dish")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Dish created"),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Restaurant not found (if validated in service)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody CreateDishRequest req) {
+    public ResponseEntity<DishDto> create(@Valid @RequestBody CreateDishRequest req) {
         log.info("POST /api/dishes called");
-
-        try {
-            Dish saved = dishService.createDish(req);
-            log.info("Dish created with id {}", saved.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
-        } catch (IllegalArgumentException ex) {
-            log.warn("Failed to create dish: {}", ex.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ex.getMessage());
-        }
+        Dish saved = dishService.createDish(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
     }
 
+    @Operation(summary = "Update dish")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dish updated"),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "404", description = "Dish not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id,
-                                    @Valid @RequestBody UpdateDishRequest req) {
+    public DishDto update(@PathVariable Long id,
+                          @Valid @RequestBody UpdateDishRequest req) {
         log.info("PUT /api/dishes/{} called", id);
-
-        try {
-            Optional<Dish> updatedOpt = dishService.updateDish(id, req);
-            if (updatedOpt.isEmpty()) {
-                log.warn("Dish with id {} not found for update", id);
-                return ResponseEntity.notFound().build();
-            }
-            Dish updated = updatedOpt.get();
-            log.info("Dish with id {} updated", updated.getId());
-            return ResponseEntity.ok(toDto(updated));
-        } catch (IllegalArgumentException ex) {
-            log.warn("Failed to update dish {}: {}", id, ex.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ex.getMessage());
-        }
+        Dish updated = dishService.updateDish(id, req);
+        return toDto(updated);
     }
 
+    @Operation(summary = "Delete dish")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Dish deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role/ownership)"),
+            @ApiResponse(responseCode = "404", description = "Dish not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("DELETE /api/dishes/{} called", id);
-
-        boolean deleted = dishService.deleteDish(id);
-        if (!deleted) {
-            log.warn("Dish with id {} not found for delete", id);
-            return ResponseEntity.notFound().build();
-        }
-
-        log.info("Dish with id {} deleted", id);
+        dishService.deleteDish(id);
         return ResponseEntity.noContent().build();
     }
 }

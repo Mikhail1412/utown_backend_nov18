@@ -1,5 +1,8 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,6 +41,13 @@ public class AuthController {
     }
 
     @SecurityRequirements
+    @Operation(summary = "Login (public) - returns JWT token")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "JWT token returned"),
+            @ApiResponse(responseCode = "400", description = "Validation error / missing fields"),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         log.info("POST /api/auth/login called for email={}", request.getEmail());
@@ -65,6 +75,13 @@ public class AuthController {
     }
 
     @SecurityRequirements
+    @Operation(summary = "Register (public) - creates user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User created"),
+            @ApiResponse(responseCode = "400", description = "Validation error / bad password"),
+            @ApiResponse(responseCode = "409", description = "Conflict (e.g., email already exists)"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody CreateUserRequest request) {
         log.info("POST /api/auth/register called for email={}", request.getEmail());

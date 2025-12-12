@@ -17,4 +17,6 @@ public class CreateRestaurantRequest {
 
     @NotBlank
     private String description;
+
+    private String status;
 }

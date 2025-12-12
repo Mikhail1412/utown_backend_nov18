@@ -1,6 +1,10 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.UpdateUserRequest;
@@ -16,6 +20,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "Users")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
@@ -39,6 +45,13 @@ public class UserController {
         this.userService = userService;
     }
 
+    @Operation(summary = "Get all users")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users list"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role)"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping
     public List<UserDto> getAllUsers() {
         log.info("GET /api/users called");
@@ -50,6 +63,14 @@ public class UserController {
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "Get user by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role)"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         log.info("GET /api/users/{} called", id);
@@ -63,7 +84,15 @@ public class UserController {
                 });
     }
 
-    @ApiResponse(responseCode = "404", description = "User not found")
+    @Operation(summary = "Update user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User updated"),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role)"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
                                               @Valid @RequestBody UpdateUserRequest req) {
@@ -74,6 +103,14 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Delete user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (if restricted by role)"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         log.info("DELETE /api/users/{} called", id);

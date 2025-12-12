@@ -18,7 +18,7 @@ public class Restaurant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false/*, unique = true*/)
+    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
@@ -34,4 +34,7 @@ public class Restaurant {
     @Column(nullable = false)
     private RestaurantStatus status = RestaurantStatus.OPEN;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 }

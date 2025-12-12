@@ -10,4 +10,5 @@ public class RestaurantDto {
     private String phoneNumber;
     private String description;
     private String status;
+    private Long ownerId;
 }
