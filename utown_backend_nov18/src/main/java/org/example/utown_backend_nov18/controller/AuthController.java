@@ -1,5 +1,7 @@
 package org.example.utown_backend_nov18.controller;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Auth")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -34,6 +37,7 @@ public class AuthController {
         this.userService = userService;
     }
 
+    @SecurityRequirements
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         log.info("POST /api/auth/login called for email={}", request.getEmail());
@@ -60,6 +64,7 @@ public class AuthController {
         }
     }
 
+    @SecurityRequirements
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody CreateUserRequest request) {
         log.info("POST /api/auth/register called for email={}", request.getEmail());
