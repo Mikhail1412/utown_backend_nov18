@@ -6,10 +6,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.CreateRestaurantRequest;
 import org.example.utown_backend_nov18.dto.RestaurantDto;
 import org.example.utown_backend_nov18.dto.UpdateRestaurantRequest;
+import org.example.utown_backend_nov18.exception.BusinessConflictException;
 import org.example.utown_backend_nov18.model.Restaurant;
 import org.example.utown_backend_nov18.model.RestaurantStatus;
 import org.example.utown_backend_nov18.service.RestaurantService;
@@ -17,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,6 +44,7 @@ public class RestaurantController {
         dto.setAddress(r.getAddress());
         dto.setPhoneNumber(r.getPhoneNumber());
         dto.setDescription(r.getDescription());
+
         if (r.getStatus() != null) {
             dto.setStatus(r.getStatus().name());
         }
@@ -81,12 +85,11 @@ public class RestaurantController {
         return toDto(r);
     }
 
-    @Operation(summary = "Create restaurant (owner/admin only)")
+    @Operation(summary = "Create restaurant (authenticated user becomes owner)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Restaurant created"),
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "500", description = "Server error")
     })
     @PostMapping
@@ -141,6 +144,7 @@ public class RestaurantController {
     }
 
     public static class UpdateRestaurantStatusRequest {
+        @NotBlank
         public String status;
     }
 
@@ -155,13 +159,20 @@ public class RestaurantController {
     })
     @PatchMapping("/{id}/status")
     public RestaurantDto updateStatus(@PathVariable Long id,
-                                      @RequestBody UpdateRestaurantStatusRequest req,
+                                      @Valid @RequestBody UpdateRestaurantStatusRequest req,
                                       Authentication auth) {
         String email = auth.getName();
         boolean admin = isAdmin(auth);
 
-        RestaurantStatus status = RestaurantStatus.valueOf(req.status.trim().toUpperCase());
-        log.info("PATCH /api/restaurants/{}/status called with status={}", id, status);
+        String raw = req.status;
+        log.info("PATCH /api/restaurants/{}/status called with raw status={}", id, raw);
+
+        RestaurantStatus status;
+        try {
+            status = RestaurantStatus.valueOf(raw.trim().toUpperCase());
+        } catch (Exception e) {
+            throw new BusinessConflictException("Invalid restaurant status: " + raw + ". Allowed: OPEN, CLOSED");
+        }
 
         Restaurant updated = service.updateStatus(id, status, email, admin);
         return toDto(updated);

@@ -3,6 +3,7 @@ package org.example.utown_backend_nov18.service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.utown_backend_nov18.dto.AddOrderItemRequest;
 import org.example.utown_backend_nov18.dto.CreateOrderRequest;
+import org.example.utown_backend_nov18.dto.NotificationDto;
 import org.example.utown_backend_nov18.dto.OrderDto;
 import org.example.utown_backend_nov18.dto.OrderItemDto;
 import org.example.utown_backend_nov18.dto.UpdateOrderItemRequest;
@@ -16,7 +17,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -32,19 +35,22 @@ public class OrderServiceImpl implements OrderService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantTableRepository restaurantTableRepository;
     private final DishRepository dishRepository;
+    private final NotificationService notificationService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
                             UserRepository userRepository,
                             RestaurantRepository restaurantRepository,
                             RestaurantTableRepository restaurantTableRepository,
-                            DishRepository dishRepository) {
+                            DishRepository dishRepository,
+                            NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
         this.restaurantRepository = restaurantRepository;
         this.restaurantTableRepository = restaurantTableRepository;
         this.dishRepository = dishRepository;
+        this.notificationService = notificationService;
     }
 
     private User getUserByEmailOrThrow(String email) {
@@ -159,6 +165,7 @@ public class OrderServiceImpl implements OrderService {
         order.setTable(table);
         order.setStatus(OrderStatus.DRAFT);
         order.setTotalPrice(BigDecimal.ZERO);
+        order.setItems(new HashSet<>()); // FIX: чтобы toDto() не падал на null items
 
         Order saved = orderRepository.save(order);
         return toDto(saved);
@@ -256,7 +263,6 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new NotFoundException("Order item not found: " + itemId));
 
         items.remove(toRemove);
-
         orderItemRepository.delete(toRemove);
 
         recalcTotal(order);
@@ -287,6 +293,30 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.PLACED);
 
+        notificationService.notifyUser(
+                currentUser.getId(),
+                NotificationDto.now(
+                        "ORDER_PLACED",
+                        order.getId(),
+                        order.getStatus().name(),
+                        order.getRestaurant().getId(),
+                        order.getRestaurant().getStatus().name(),
+                        "Order placed"
+                )
+        );
+
+        notificationService.notifyRestaurant(
+                order.getRestaurant().getId(),
+                NotificationDto.now(
+                        "ORDER_PLACED",
+                        order.getId(),
+                        order.getStatus().name(),
+                        order.getRestaurant().getId(),
+                        order.getRestaurant().getStatus().name(),
+                        "New order placed"
+                )
+        );
+
         Order saved = orderRepository.save(order);
         return toDto(saved);
     }
@@ -295,7 +325,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getMyOrders(String userEmail) {
         User currentUser = getUserByEmailOrThrow(userEmail);
-        return orderRepository.findByUser(currentUser).stream().map(this::toDto).collect(Collectors.toList());
+        return orderRepository.findByUser(currentUser).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -303,11 +335,13 @@ public class OrderServiceImpl implements OrderService {
     public Page<OrderDto> getMyOrders(String userEmail, Pageable pageable, OrderStatus status) {
         User currentUser = getUserByEmailOrThrow(userEmail);
 
-        Page<Order> page = (status == null)
-                ? orderRepository.findByUser(currentUser, pageable)
-                : orderRepository.findByUserAndStatus(currentUser, status, pageable);
+        if (status == null) {
+            return orderRepository.findByUser(currentUser, pageable)
+                    .map(this::toDto);
+        }
 
-        return page.map(this::toDto);
+        return orderRepository.findByUserAndStatus(currentUser, status, pageable)
+                .map(this::toDto);
     }
 
     @Override
@@ -318,7 +352,9 @@ public class OrderServiceImpl implements OrderService {
 
         assertRestaurantOwnerOrAdmin(restaurant, userEmail, isAdmin);
 
-        return orderRepository.findByRestaurant(restaurant).stream().map(this::toDto).collect(Collectors.toList());
+        return orderRepository.findByRestaurant(restaurant).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -330,11 +366,13 @@ public class OrderServiceImpl implements OrderService {
 
         assertRestaurantOwnerOrAdmin(restaurant, userEmail, isAdmin);
 
-        Page<Order> page = (status == null)
-                ? orderRepository.findByRestaurant(restaurant, pageable)
-                : orderRepository.findByRestaurantAndStatus(restaurant, status, pageable);
+        if (status == null) {
+            return orderRepository.findByRestaurant(restaurant, pageable)
+                    .map(this::toDto);
+        }
 
-        return page.map(this::toDto);
+        return orderRepository.findByRestaurantAndStatus(restaurant, status, pageable)
+                .map(this::toDto);
     }
 
     @Override
