@@ -36,4 +36,6 @@ public interface OrderService {
     OrderDto updateStatus(Long orderId, OrderStatus status, String userEmail, boolean isAdmin);
 
     OrderDto cancel(Long orderId, String userEmail, boolean isAdmin);
+
+    List<OrderDto> getMyCart(String userEmail);
 }

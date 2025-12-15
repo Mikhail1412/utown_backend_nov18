@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -165,7 +164,6 @@ public class OrderServiceImpl implements OrderService {
         order.setTable(table);
         order.setStatus(OrderStatus.DRAFT);
         order.setTotalPrice(BigDecimal.ZERO);
-        order.setItems(new HashSet<>()); // FIX: чтобы toDto() не падал на null items
 
         Order saved = orderRepository.save(order);
         return toDto(saved);
@@ -193,6 +191,10 @@ public class OrderServiceImpl implements OrderService {
 
         if (dish.getRestaurant() == null || !dish.getRestaurant().getId().equals(order.getRestaurant().getId())) {
             throw new BusinessConflictException("Dish does not belong to this restaurant");
+        }
+
+        if (!dish.isActive()) {
+            throw new BusinessConflictException("Dish is not active");
         }
 
         OrderItem item = new OrderItem();
@@ -336,12 +338,19 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = getUserByEmailOrThrow(userEmail);
 
         if (status == null) {
-            return orderRepository.findByUser(currentUser, pageable)
-                    .map(this::toDto);
+            return orderRepository.findByUser(currentUser, pageable).map(this::toDto);
         }
 
-        return orderRepository.findByUserAndStatus(currentUser, status, pageable)
-                .map(this::toDto);
+        return orderRepository.findByUserAndStatus(currentUser, status, pageable).map(this::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderDto> getMyCart(String userEmail) {
+        User currentUser = getUserByEmailOrThrow(userEmail);
+        return orderRepository.findByUserAndStatus(currentUser, OrderStatus.DRAFT).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -367,12 +376,10 @@ public class OrderServiceImpl implements OrderService {
         assertRestaurantOwnerOrAdmin(restaurant, userEmail, isAdmin);
 
         if (status == null) {
-            return orderRepository.findByRestaurant(restaurant, pageable)
-                    .map(this::toDto);
+            return orderRepository.findByRestaurant(restaurant, pageable).map(this::toDto);
         }
 
-        return orderRepository.findByRestaurantAndStatus(restaurant, status, pageable)
-                .map(this::toDto);
+        return orderRepository.findByRestaurantAndStatus(restaurant, status, pageable).map(this::toDto);
     }
 
     @Override
@@ -410,9 +417,40 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        assertStatusTransitionAllowed(order.getStatus(), status);
+        OrderStatus from = order.getStatus();
+        assertStatusTransitionAllowed(from, status);
+
+        if (from == status) {
+            return toDto(order);
+        }
 
         order.setStatus(status);
+
+        if (order.getUser() != null) {
+            notificationService.notifyUser(
+                    order.getUser().getId(),
+                    NotificationDto.now(
+                            "ORDER_STATUS_CHANGED",
+                            order.getId(),
+                            order.getStatus().name(),
+                            order.getRestaurant().getId(),
+                            order.getRestaurant().getStatus().name(),
+                            "Order status changed: " + from + " -> " + status
+                    )
+            );
+        }
+
+        notificationService.notifyRestaurant(
+                order.getRestaurant().getId(),
+                NotificationDto.now(
+                        "ORDER_STATUS_CHANGED",
+                        order.getId(),
+                        order.getStatus().name(),
+                        order.getRestaurant().getId(),
+                        order.getRestaurant().getStatus().name(),
+                        "Order status changed: " + from + " -> " + status
+                )
+        );
 
         Order saved = orderRepository.save(order);
         return toDto(saved);

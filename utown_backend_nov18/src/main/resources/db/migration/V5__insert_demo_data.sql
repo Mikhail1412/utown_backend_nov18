@@ -1,37 +1,50 @@
-INSERT INTO restaurants (id, name, description, address, phone) VALUES
-                                                                    (1, 'Utown Korean BBQ', 'Корейский гриль и супы', 'Incheon, Block A-1', '010-1111-2222'),
-                                                                    (2, 'Utown Pizza & Pasta', 'Пицца, паста и салаты', 'Incheon, Block B-2', '010-2222-3333'),
-                                                                    (3, 'Utown Coffee & Desserts', 'Кофе, выпечка и десерты', 'Incheon, Block C-3', '010-3333-4444');
+INSERT INTO roles (name) VALUES ('USER');
+INSERT INTO roles (name) VALUES ('RESTAURANT_ADMIN');
+INSERT INTO roles (name) VALUES ('ADMIN');
 
-INSERT INTO dining_areas (id, restaurant_id, name, description) VALUES
-                                                                    (1, 1, 'Основной зал', 'Главный зал с мангалами'),
-                                                                    (2, 1, 'VIP-комнаты', 'Приватные комнаты'),
-                                                                    (3, 2, 'Основной зал', 'Основной зал пиццерии'),
-                                                                    (4, 2, 'Терраса', 'Уличные столики'),
-                                                                    (5, 3, 'Бариста зона', 'Барная стойка'),
-                                                                    (6, 3, 'Кофейный зал', 'Основной зал кофейни');
+INSERT INTO users (first_name, last_name, name, age, email, password)
+VALUES
+    ('Test2', 'User', 'Test2 User', 25, 'test2_user@example.com', '$2b$12$YIXthxxp549pLXORcsaLKuZmN1gLeCsvlSPDF6ZCBFbo90ZsMeiN6'),
+    ('Test3', 'User', 'Test3 User', 25, 'test3_user@example.com', '$2b$12$YIXthxxp549pLXORcsaLKuZmN1gLeCsvlSPDF6ZCBFbo90ZsMeiN6'),
+    ('Admin', 'User', 'Admin User', 30, 'admin@utown.local', '$2b$12$YIXthxxp549pLXORcsaLKuZmN1gLeCsvlSPDF6ZCBFbo90ZsMeiN6');
 
-INSERT INTO restaurant_tables (id, dining_area_id, table_number, capacity) VALUES
-                                                                               (1, 1, 'A1', 4),
-                                                                               (2, 1, 'A2', 4),
-                                                                               (3, 1, 'A3', 6),
-                                                                               (4, 2, 'VIP1', 6),
-                                                                               (5, 2, 'VIP2', 8),
-                                                                               (6, 3, 'P1', 2),
-                                                                               (7, 3, 'P2', 4),
-                                                                               (8, 4, 'T1', 4),
-                                                                               (9, 4, 'T2', 4),
-                                                                               (10, 5, 'B1', 2),
-                                                                               (11, 6, 'C1', 2),
-                                                                               (12, 6, 'C2', 4);
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM users u, roles r
+WHERE u.email = 'test2_user@example.com' AND r.name = 'USER';
 
-INSERT INTO dishes (id, restaurant_id, name, description, price, is_active) VALUES
-                                                                                (1, 1, 'Samgyeopsal', 'Свиная грудинка на гриле', 15000, 1),
-                                                                                (2, 1, 'Kimchi Jjigae', 'Острый суп с кимчи', 9000, 1),
-                                                                                (3, 1, 'Bibimbap', 'Рис с овощами и говядиной', 10000, 1),
-                                                                                (4, 2, 'Margherita Pizza', 'Пицца Маргарита', 13000, 1),
-                                                                                (5, 2, 'Pepperoni Pizza', 'Пицца Пепперони', 15000, 1),
-                                                                                (6, 2, 'Carbonara Pasta', 'Паста карбонара', 12000, 1),
-                                                                                (7, 3, 'Americano', 'Классический американо', 4000, 1),
-                                                                                (8, 3, 'Caffe Latte', 'Латте', 4500, 1),
-                                                                                (9, 3, 'Tiramisu', 'Тирамису', 7000, 1);
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM users u, roles r
+WHERE u.email = 'test3_user@example.com' AND r.name = 'USER';
+
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM users u, roles r
+WHERE u.email = 'admin@utown.local' AND r.name = 'ADMIN';
+
+INSERT INTO restaurants (name, address, phone_number, description, status)
+VALUES
+    ('Utown BBQ', 'Seoul, Gangnam-gu, Teheran-ro 1', '010-1111-1111', 'BBQ restaurant', 'OPEN'),
+    ('Utown Sushi', 'Incheon, Yeonsu-gu, Songdo 1', '010-2222-2222', 'Sushi restaurant', 'OPEN');
+
+INSERT INTO dining_areas (name, description, restaurant_id)
+VALUES
+    ('Main Hall', 'Main dining hall', 1),
+    ('VIP', 'VIP zone', 1),
+    ('Hall', 'Common hall', 2);
+
+INSERT INTO restaurant_tables (table_number, capacity, active, dining_area_id)
+VALUES
+    ('A1', 4, TRUE, 1),
+    ('A2', 2, TRUE, 1),
+    ('V1', 6, TRUE, 2),
+    ('S1', 4, TRUE, 3);
+
+INSERT INTO dishes (name, description, price, restaurant_id, active)
+VALUES
+    ('Pork BBQ', 'Grilled pork', 13000.00, 1, TRUE),
+    ('Beef BBQ', 'Grilled beef', 20000.00, 1, TRUE),
+    ('Kimchi', 'Spicy kimchi', 3000.00, 1, TRUE),
+    ('Salmon Sushi', 'Salmon nigiri', 15000.00, 2, TRUE),
+    ('Tuna Sushi', 'Tuna nigiri', 16000.00, 2, TRUE);

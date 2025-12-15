@@ -29,6 +29,9 @@ public class Dish {
     @Column(nullable = false)
     private String description;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
