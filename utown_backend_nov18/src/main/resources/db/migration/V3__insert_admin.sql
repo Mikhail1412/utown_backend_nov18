@@ -12,4 +12,4 @@ INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM users u, roles r
 WHERE u.email = 'admin@utown.local'
-  AND r.name = 'ROLE_ADMIN';
+  AND r.name = 'ADMIN';

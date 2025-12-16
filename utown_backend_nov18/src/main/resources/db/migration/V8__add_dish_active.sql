@@ -1,2 +1,1 @@
-ALTER TABLE dishes
-    ADD COLUMN active BOOLEAN NOT NULL DEFAULT TRUE;
+-- no-op: column dishes.active is created in V1__create_core_tables.sql

@@ -57,7 +57,7 @@ public class RestaurantController {
     private boolean isAdmin(Authentication auth) {
         if (auth == null || auth.getAuthorities() == null) return false;
         return auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ADMIN".equals(a.getAuthority()));
     }
 
     @Operation(summary = "Get all restaurants")

@@ -63,16 +63,16 @@ public class WebSecurityConfig {
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/users/**").permitAll()
+                        .requestMatchers("/api/users/**").hasAuthority("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/restaurants/**",
                                 "/api/dishes/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/restaurants/**",
                                 "/api/dining-areas/**",
                                 "/api/tables/**",
                                 "/api/dishes/**")
-                        .hasAnyRole("ADMIN", "RESTAURANT_ADMIN")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_ADMIN")
                         .anyRequest().authenticated()
                 );
         return http.build();
