@@ -1,11 +1,16 @@
 package org.example.utown_backend_nov18.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
@@ -19,8 +24,8 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms:86400000}") long expirationMs
     ) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);

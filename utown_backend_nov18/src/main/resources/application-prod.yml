@@ -4,8 +4,6 @@ server:
 spring:
   datasource:
     url: ${DATABASE_URL}
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: none
@@ -13,13 +11,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
   flyway:
     enabled: true
 
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 springdoc:
   swagger-ui:
