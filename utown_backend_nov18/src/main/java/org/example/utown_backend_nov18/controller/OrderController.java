@@ -68,8 +68,12 @@ public class OrderController {
     }
 
     @GetMapping("/my/cart")
-    public ResponseEntity<List<OrderDto>> myCart(Authentication auth) {
-        return ResponseEntity.ok(orderService.getMyCart(auth.getName()));
+    public ResponseEntity<OrderDto> myCart(@RequestParam Long restaurantId, Authentication auth) {
+        OrderDto cart = orderService.getMyCart(restaurantId, auth.getName());
+        if (cart == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(cart);
     }
 
     @GetMapping("/orders/{id}")

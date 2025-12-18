@@ -28,4 +28,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByRestaurant(Restaurant restaurant, Pageable pageable);
 
     Page<Order> findByRestaurantAndStatus(Restaurant restaurant, OrderStatus status, Pageable pageable);
+
+    Optional<Order> findFirstByUserAndRestaurantAndStatusOrderByIdDesc(User user, Restaurant restaurant, OrderStatus status);
+
 }

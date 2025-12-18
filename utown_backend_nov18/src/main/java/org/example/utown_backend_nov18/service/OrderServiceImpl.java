@@ -346,11 +346,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderDto> getMyCart(String userEmail) {
+    public OrderDto getMyCart(Long restaurantId, String userEmail) {
         User currentUser = getUserByEmailOrThrow(userEmail);
-        return orderRepository.findByUserAndStatus(currentUser, OrderStatus.DRAFT).stream()
+
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new NotFoundException("Restaurant not found: " + restaurantId));
+
+        return orderRepository.findFirstByUserAndRestaurantAndStatusOrderByIdDesc(currentUser, restaurant, OrderStatus.DRAFT)
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .orElse(null);
     }
 
     @Override
@@ -426,33 +430,34 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(status);
 
-        if (order.getUser() != null) {
+        Order saved = orderRepository.save(order);
+
+        if (saved.getUser() != null) {
             notificationService.notifyUser(
-                    order.getUser().getId(),
+                    saved.getUser().getId(),
                     NotificationDto.now(
                             "ORDER_STATUS_CHANGED",
-                            order.getId(),
-                            order.getStatus().name(),
-                            order.getRestaurant().getId(),
-                            order.getRestaurant().getStatus().name(),
+                            saved.getId(),
+                            saved.getStatus().name(),
+                            saved.getRestaurant().getId(),
+                            saved.getRestaurant().getStatus().name(),
                             "Order status changed: " + from + " -> " + status
                     )
             );
         }
 
         notificationService.notifyRestaurant(
-                order.getRestaurant().getId(),
+                saved.getRestaurant().getId(),
                 NotificationDto.now(
                         "ORDER_STATUS_CHANGED",
-                        order.getId(),
-                        order.getStatus().name(),
-                        order.getRestaurant().getId(),
-                        order.getRestaurant().getStatus().name(),
+                        saved.getId(),
+                        saved.getStatus().name(),
+                        saved.getRestaurant().getId(),
+                        saved.getRestaurant().getStatus().name(),
                         "Order status changed: " + from + " -> " + status
                 )
         );
 
-        Order saved = orderRepository.save(order);
         return toDto(saved);
     }
 

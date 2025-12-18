@@ -37,5 +37,5 @@ public interface OrderService {
 
     OrderDto cancel(Long orderId, String userEmail, boolean isAdmin);
 
-    List<OrderDto> getMyCart(String userEmail);
+    OrderDto getMyCart(Long restaurantId, String userEmail);
 }
